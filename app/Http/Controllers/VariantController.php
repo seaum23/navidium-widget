@@ -135,6 +135,33 @@ class VariantController extends Controller
         ]);
     }
 
+    public function findClosest($arr, $target, $adjustment = 'rounding_down')
+    {
+        if (!$arr || !count($arr)) {
+            return null;
+        }
+        $toMatch = (float) $target;
+        $finalOutput = 0.0;
+        $n = count($arr);
+        for ($i = 0; $i < $n; $i++) {
+            $current = $arr[$i];
+            $next = $arr[$i + 1];
+            if ($toMatch >= $current && $toMatch <= $next) {
+                if ($adjustment === 'rounding_down') {
+                    $finalOutput = $current;
+                }
+                if ($adjustment === 'rounding_up') {
+                    $finalOutput = $next;
+                }
+                break;
+            } elseif ($toMatch <= $current) {
+                $finalOutput = $current;
+                break;
+            }
+        }
+        return (float) $finalOutput;
+    }
+
     /**
      * Display the specified resource.
      */
