@@ -153,9 +153,7 @@ class VariantController extends Controller
 
         }
 
-        return $this->successResponse([
-            'data' => $post_data,
-        ]);
+        return $this->successResponse($post_data);
     }
 
     public function findClosest($arr, $target, $adjustment = 'rounding_down')
