@@ -45,13 +45,13 @@ class VariantController extends Controller
         $nvd_protection_type = 1;
         $nvd_protection_percentage = 2;
         $result_meta = Metafield::where('shop_url', $shop_url)
-            ->whereIn('meta_key', ['srt_protection_type', 'srt_protection_type_value'])
+            ->whereIn('meta_key', ['nvd_protection_type', 'nvd_protection_type_value'])
             ->get();
 
         foreach ($result_meta as $meta_row) {
-            if ($meta_row->meta_key == 'srt_protection_type') {
+            if ($meta_row->meta_key == 'nvd_protection_type') {
                 $nvd_protection_type = $meta_row->meta_value;
-            } elseif ($meta_row->meta_key == 'srt_protection_type_value') {
+            } elseif ($meta_row->meta_key == 'nvd_protection_type_value') {
                 $nvd_protection_percentage = $meta_row->meta_value;
             }
         }
@@ -84,6 +84,7 @@ class VariantController extends Controller
                 $nvd_variants_x[$variant_id] = $variant_price;
             }
         }
+        // dd($nvd_variants);
 
         asort($nvd_variants_x);
         array_multisort(array_column($nvd_variants, 'range_from'), SORT_ASC, $nvd_variants);
@@ -116,18 +117,40 @@ class VariantController extends Controller
             $post_data = ['variant_id' => (int) $min_variant_id, 'price' => $min_variant_price_db];
             $i = 0;
             foreach ($nvd_variants as $variant) {
-                if ($raw_price > (float) $variant['range_from'] && $raw_price < $nvd_variants[$i + 1]['range_from']) {
-                    $post_data = ['variant_id' => (int) $variant['variant_id'], 'price' => $variant['price']];
-                } elseif ($raw_price > (float) $variant['range_to'] && !isset($nvd_variants[$i + 1])) {
-                    $post_data = ['variant_id' => (int) $variant['variant_id'], 'price' => $variant['price']];
+
+                $from = (float)$variant['range_from'];
+                $to = (float)$variant['range_to'];
+
+                if (isset($nvd_variants[$i + 1])) {
+                    $next_from = (float)$nvd_variants[$i + 1]["range_from"];
                 }
 
-                if ((float) $variant['range_from'] <= $raw_price && $raw_price <= (float) $variant['range_to']) {
-                    $post_data = ['variant_id' => (int) $variant['variant_id'], 'price' => $variant['price']];
+                $final_variant_id = (int)$nvd_variants[0]["variant_id"];
+                $final_variant_price = $nvd_variants[0]["price"];
+
+                if (isset($next_from) && $raw_price < $from && $raw_price < $next_from) {
+                    $qa_one = true;
+                    $final_variant_id = (int)$variant["variant_id"];
+                    $final_variant_price = $variant["price"];
+                } else if ($raw_price > $to && !isset($next_from)) {
+                    $final_variant_id = (int)$variant["variant_id"];
+                    $final_variant_price = $variant["price"];
+                }
+
+                if ($from <= $raw_price && $raw_price <= $to) {
+                    $final_variant_id = (int)$variant["variant_id"];
+                    $final_variant_price = $variant["price"];
                     break;
                 }
+
                 $i++;
+
+                if (isset($next_from)) {
+                    unset($next_from);
+                }
             }
+            $post_data = ['variant_id' => (int) $final_variant_id, 'price' => $final_variant_price];
+
         }
 
         return $this->successResponse([
