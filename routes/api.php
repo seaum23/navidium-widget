@@ -19,4 +19,6 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::get('variant-checker', [VariantController::class, 'index']);
+Route::group(['excluded_middleware' => 'throttle:api'], function () {
+    Route::get('variant-checker', [VariantController::class, 'index']);
+});
